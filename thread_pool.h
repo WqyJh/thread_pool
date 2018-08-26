@@ -44,8 +44,7 @@ struct thread_pool_s
 struct thread_local_s
 {
     pthread_key_t key;
-    tp_task_t task;
-    void *data;
+    tp_task_t *task;
 };
 
 
@@ -99,7 +98,8 @@ void tp_join(thread_pool_t *tp);
  * be queued and waiting for threads consuming it.
  *
  * @param tp started thread pool
- * @param task an task
+ * @param task an task in heap, which would be released
+ *        by the pool after it's been consumed
  * @return true: succeed
  *         false: failed
  */
@@ -181,7 +181,9 @@ tp_task_create((task)->runner, (task)->cleanup, (task)->args, (task)->args_len)
  * Initialize a thread local storage.
  *
  * @param tls thread local storage to be initialized
- * @param task task for the creation and cleanup of the value
+ * @param task task for the creation and cleanup of the value,
+ *             which must be allocated in heap and would be freed
+ *             when tls destroyed
  * @return true: succeed
  *         false: failed
  */

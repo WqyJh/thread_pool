@@ -17,3 +17,6 @@ target_link_libraries(test_pool thread_pool)
 
 add_executable(test_tp_self test_tp_self.c)
 target_link_libraries(test_tp_self thread_pool)
+
+add_executable(test test.c)
+target_link_libraries(test pthread)

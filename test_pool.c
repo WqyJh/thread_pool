@@ -45,7 +45,7 @@ void test_pool()
     int a[LEN];
     thread_pool_t tp;
     struct _args_s args;
-    tp_task_t task;
+    tp_task_t *task;
 
     bzero(a, sizeof(int) * LEN);
 
@@ -57,10 +57,9 @@ void test_pool()
         args.num = &a[i];
         args.index = i;
 
-        tp_task_init(&task, task1, cleanup1,
-                     &args, sizeof(struct _args_s));
-        tp_post_task(&tp, &task);
-        tp_task_destroy(&task);
+        task = tp_task_create(task1, cleanup1,
+                              &args, sizeof(struct _args_s));
+        tp_post_task(&tp, task);
     }
 
     sleep(3);

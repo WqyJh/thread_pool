@@ -197,18 +197,10 @@ void tp_join(thread_pool_t *tp)
 bool tp_post_task(thread_pool_t *tp, tp_task_t *task)
 {
     bool status = false;
-    tp_task_t *_task = NULL;
     qdata_t data;
 
-    _task = tp_task_create(task->runner, task->cleanup, task->args, task->args_len);
-
-    if (_task == NULL) {
-        perror("tp_task_create() failed");
-        goto EXIT;
-    }
-
     // todo: check return value?
-    data.ptr = _task;
+    data.ptr = task;
     pthread_mutex_lock(&tp->lock);
     queue_enqueue(&tp->task_queue, data);
     pthread_cond_signal(&tp->has_task);
@@ -301,19 +293,17 @@ void *_tp_self_create(void *args)
 
 void _tp_self_key_init(thread_pool_t *tp)
 {
-    bool task_inited = false;
-    tp_task_t task;
+    tp_task_t *task;
 
     // pass `tp` to it directly without copying by setting
     // args_len to 0.
-    if (!tp_task_init(
-            &task, _tp_self_create, _tp_self_cleanup, tp, 0)) {
+    task = tp_task_create(_tp_self_create, _tp_self_cleanup, tp, 0);
+
+    if (!task) {
         goto EXIT;
     }
 
-    task_inited = true;
-
-    if (!tp_tls_init(&g_self_tls, &task)) {
+    if (!tp_tls_init(&g_self_tls, task)) {
         goto EXIT;
     }
 
@@ -325,9 +315,7 @@ void _tp_self_key_init(thread_pool_t *tp)
     g_self_key_inited = true;
 
 EXIT:
-    if (task_inited) {
-        tp_task_destroy(&task);
-    }
+    return;
 }
 
 
@@ -374,21 +362,15 @@ bool tp_tls_init(thread_local_t *tls, tp_task_t *task)
 
     key_created = true;
 
-    if (!tp_task_init(&tls->task, task->runner, task->cleanup,
-                      task->args, task->args_len)) {
-        goto EXIT;
-    }
-
+    tls->task = task;
     tls->key = key;
 
     status = true;
 
 EXIT:
     if (!status) {
-        if (task->runner) {
-            if (key_created) {
-                pthread_key_delete(key);
-            }
+        if (key_created) {
+            pthread_key_delete(key);
         }
     }
 
@@ -399,13 +381,13 @@ EXIT:
 void tp_tls_destroy(thread_local_t *tls)
 {
     if (tls) {
-        if (tls->data && tls->task.cleanup) {
-            tls->task.cleanup(tls->data);
+        if (tls->task) {
+            tp_task_free(tls->task);
         }
 
-        tp_task_destroy(&tls->task);
-
         pthread_key_delete(tls->key);
+
+        bzero(tls, sizeof(thread_local_t));
     }
 }
 
@@ -440,17 +422,20 @@ EXIT:
 bool tp_set_tls(thread_local_t *tls)
 {
     bool status = false;
+    void *data = NULL;
 
     if (tls == NULL) {
         goto EXIT;
     }
 
-    if (tls->data == NULL) {
-        tls->data = tls->task.runner(tls->task.args);
+    data = pthread_getspecific(tls->key);
+
+    if (data == NULL) {
+        data = tls->task->runner(tls->task->args);
     }
 
-    if (tls->data) {
-        if (pthread_setspecific(tls->key, tls->data)) {
+    if (data) {
+        if (pthread_setspecific(tls->key, data)) {
             perror("pthread_setspecific() failed");
             goto EXIT;
         }

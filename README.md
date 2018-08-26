@@ -39,19 +39,18 @@ void cleanup1(void *args);
 void *task1(void *args);
 
 int *args;
-tp_task_t task;
+tp_task_t *task;
 thread_pool_t tp;
 
 // Initialize a task
-tp_task_init(&task, task1, cleanup1, args, sizeof(int));
+task = tp_task_create(task1, cleanup1, args, sizeof(int));
              
 // Post a task to the thread pool `tp`
-tp_post_task(&tp, &task);
+tp_post_task(&tp, task);
 
 // Destroy a task
-// Because tp_task_init() would allocate memory so we must
-// free it after use it.
-tp_task_destroy(&task);
+// It should be invoke by task consumer such as a thread in thread pool.
+tp_task_free(task);
 ```
 
 
@@ -69,19 +68,20 @@ void *tls_create(void *args);
 void tls_cleanup(void *args);
 
 thread_pool_t tp;
-tp_task_t task;
+tp_task_t *task;
 thread_local_t tls;
 
-// Initialize a thread local task
-tp_task_init(&task, tls_create, tls_cleanup, NULL, 0);
-tp_tls_init(&tls, &task);
+// Initialize a thread local task, used to create and cleanup 
+// the variables for each thread.
+task = tp_task_create(tls_create, tls_cleanup, NULL, 0);
+tp_tls_init(&tls, task);
 
 // In task function
 thread_local_t *tls = args->tls;
 void *data = tp_get_tls(tls);
 // Then you can consume the returned data.
 
-// Destroy a thread local storage
+// Destroy a thread local storage, which also free the task it holds.
 tp_tls_destroy(&tls);
 ```
 
