@@ -60,6 +60,7 @@ void test_pool()
         tp_task_init(&task, task1, cleanup1,
                      &args, sizeof(struct _args_s));
         tp_post_task(&tp, &task);
+        tp_task_destroy(&task);
     }
 
     sleep(3);

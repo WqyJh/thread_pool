@@ -106,6 +106,13 @@ void tp_join(thread_pool_t *tp);
 bool tp_post_task(thread_pool_t *tp, tp_task_t *task);
 
 
+/**
+ * In task function, get the thread local itself.
+ * @return thread local itself or NULL when error occurred
+ */
+thread_pool_t *tp_self();
+
+
 /* ---------------- Task API ---------------- */
 
 

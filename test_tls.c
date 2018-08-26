@@ -50,17 +50,18 @@ void test_tls()
     tp_task_t task;
     thread_local_t tls;
 
-
     assert(tp_init(&tp, 5));
     assert(tp_start(&tp));
 
     tp_task_init(&task, tls_create, tls_cleanup, NULL, 0);
     tp_tls_init(&tls, &task);
+    tp_task_destroy(&task);
 
     for (int i = 0; i < LEN; ++i) {
         tp_task_init(&task, task_func, NULL,
                      &tls, sizeof(thread_local_t));
         tp_post_task(&tp, &task);
+        tp_task_destroy(&task);
     }
 
     sleep(4);

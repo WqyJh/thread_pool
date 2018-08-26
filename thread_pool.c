@@ -6,11 +6,25 @@
 #include <stdlib.h>
 
 
+typedef struct
+{
+    thread_pool_t *tp;
+} tp_self_arg;
+
+
+void _tp_self_key_init(thread_pool_t *tp);
+
+void _tp_self_destroy(thread_pool_t *tp);
+
 void *tp_worker(void *args);
 
 void tp_cleanup_unlock(void *args);
 
 void tp_cleanup(void *args);
+
+
+static thread_local_t g_self_tls;
+static bool g_self_key_inited = false;
 
 
 /* ---------------- Thread Pool API ---------------- */
@@ -56,6 +70,8 @@ bool tp_init(thread_pool_t *tp, uint32_t nthreads)
     }
 
     threads_allocated = true;
+
+    _tp_self_key_init(tp);
 
     status = true;
 
@@ -152,6 +168,11 @@ void tp_destroy(thread_pool_t *tp)
 
     if (pthread_mutex_destroy(&tp->lock)) {
         perror("pthread_mutex_destroy()");
+    }
+
+    if (g_self_key_inited) {
+        _tp_self_destroy(tp);
+        g_self_key_inited = false;
     }
 
     queue_clear(&tp->task_queue);
@@ -255,6 +276,81 @@ void *tp_worker(void *args)
     pthread_cleanup_pop(0);
 
     return NULL;
+}
+
+
+/* ---------------- Thread Pool Self API ---------------- */
+
+
+void *_tp_self_create(void *args)
+{
+    tp_self_arg *arg = NULL;
+
+    arg = malloc(sizeof(tp_self_arg));
+
+    if (arg) {
+        arg->tp = args;
+    }
+
+    return arg;
+}
+
+
+#define _tp_self_cleanup free
+
+
+void _tp_self_key_init(thread_pool_t *tp)
+{
+    bool task_inited = false;
+    tp_task_t task;
+
+    // pass `tp` to it directly without copying by setting
+    // args_len to 0.
+    if (!tp_task_init(
+            &task, _tp_self_create, _tp_self_cleanup, tp, 0)) {
+        goto EXIT;
+    }
+
+    task_inited = true;
+
+    if (!tp_tls_init(&g_self_tls, &task)) {
+        goto EXIT;
+    }
+
+
+    if (!tp_set_tls(&g_self_tls)) {
+        goto EXIT;
+    }
+
+    g_self_key_inited = true;
+
+EXIT:
+    if (task_inited) {
+        tp_task_destroy(&task);
+    }
+}
+
+
+void _tp_self_destroy(thread_pool_t *tp)
+{
+    if (g_self_key_inited) {
+        tp_tls_destroy(&g_self_tls);
+    }
+}
+
+
+thread_pool_t *tp_self()
+{
+
+    tp_self_arg *arg = NULL;
+    thread_pool_t *pool = NULL;
+
+    if (g_self_key_inited) {
+        arg = tp_get_tls(&g_self_tls);
+        pool = arg->tp;
+    }
+
+    return pool;
 }
 
 
@@ -384,13 +480,18 @@ bool tp_task_init(tp_task_t *task,
     }
 
     if (args) {
-        _args = malloc(args_len);
+        // Do not copy when args_len == 0
+        if (args_len == 0) {
+            _args = args;
+        } else {
+            _args = malloc(args_len);
 
-        if (!_args) {
-            goto EXIT;
+            if (!_args) {
+                goto EXIT;
+            }
+
+            memcpy(_args, args, args_len);
         }
-
-        memcpy(_args, args, args_len);
     }
 
     task->runner = runner;
@@ -407,7 +508,9 @@ EXIT:
 void tp_task_destroy(tp_task_t *task)
 {
     if (task) {
-        if (task->args) {
+        // if args_len == 0 then don't free
+        // cause it didn't be allocated
+        if (task->args && task->args_len) {
             free(task->args);
         }
 
