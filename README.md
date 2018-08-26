@@ -47,6 +47,11 @@ tp_task_init(&task, task1, cleanup1, args, sizeof(int));
              
 // Post a task to the thread pool `tp`
 tp_post_task(&tp, &task);
+
+// Destroy a task
+// Because tp_task_init() would allocate memory so we must
+// free it after use it.
+tp_task_destroy(&task);
 ```
 
 
@@ -67,6 +72,7 @@ thread_pool_t tp;
 tp_task_t task;
 thread_local_t tls;
 
+// Initialize a thread local task
 tp_task_init(&task, tls_create, tls_cleanup, NULL, 0);
 tp_tls_init(&tls, &task);
 
@@ -74,6 +80,9 @@ tp_tls_init(&tls, &task);
 thread_local_t *tls = args->tls;
 void *data = tp_get_tls(tls);
 // Then you can consume the returned data.
+
+// Destroy a thread local storage
+tp_tls_destroy(&tls);
 ```
 
 
