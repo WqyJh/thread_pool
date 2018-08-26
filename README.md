@@ -23,6 +23,9 @@ tp_join(&tp);
 
 // Destroy the thread pool
 tp_destroy(&tp);
+
+// Get the thread_pool_t itself in the task function
+tp_self();
 ```
 
 

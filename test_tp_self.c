@@ -54,6 +54,10 @@ void test_self()
     tp_task_destroy(&task);
 
     sleep(2);
+
+    thread_pool_t *p;
+    p = tp_self();
+    fprintf(stderr, "main thread tp: %p\n", p);
 //    tp_join(&tp);
     tp_destroy(&tp);
 }
