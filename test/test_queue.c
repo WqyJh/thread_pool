@@ -88,10 +88,17 @@ void test_len()
     fprintf(stderr, "test_len() succeed\n");
 }
 
-int main()
+
+void test_queue()
 {
     init_data();
     test_init();
     test_destroy();
     test_len();
+}
+
+
+int main()
+{
+    test_queue();
 }

@@ -34,11 +34,17 @@ void *func(void *args)
 }
 
 
-int main()
+void _test()
 {
     pthread_t t;
 
     pthread_key_create(&key, tls_cleanup);
     pthread_create(&t, NULL, func, NULL);
     pthread_join(t, NULL);
+}
+
+
+int main()
+{
+    _test();
 }

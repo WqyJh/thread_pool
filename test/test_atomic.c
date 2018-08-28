@@ -7,13 +7,16 @@
 #define TASK_NUM 20
 #define THREAD_NUM 10
 
+
 volatile int acnt = 0;
 volatile int cnt = 0;
+
 
 void cleanup(void *args)
 {
 //    fprintf(stderr, "cleanup++\n");
 }
+
 
 void *f(void *args)
 {
@@ -24,7 +27,8 @@ void *f(void *args)
     return NULL;
 }
 
-int main(void)
+
+void test_atomic()
 {
     thread_pool_t tp;
     tp_task_t *tasks[TASK_NUM];
@@ -47,4 +51,11 @@ int main(void)
     fprintf(stderr, "The non-atomic counter is %u\n", cnt);
 
     tp_destroy(&tp);
+}
+
+
+int main(void)
+{
+    test_atomic();
+    return 0;
 }
