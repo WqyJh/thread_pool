@@ -20,3 +20,6 @@ target_link_libraries(test_tp_self thread_pool)
 
 add_executable(test test.c)
 target_link_libraries(test pthread)
+
+add_executable(test_atomic test_atomic.c)
+target_link_libraries(test_atomic thread_pool)

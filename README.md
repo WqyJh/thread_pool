@@ -18,8 +18,11 @@ tp_init(&tp, THREAD_NUM);
 // Start an thread pool
 tp_start(&tp);
 
-// Join the thread pool
+// Join the thread pool, waiting until all thread ended
 tp_join(&tp);
+
+// Join the running tasks, waiting until all running tasks finished
+tp_join_tasks(&tp);
 
 // Destroy the thread pool
 tp_destroy(&tp);
@@ -44,13 +47,43 @@ thread_pool_t tp;
 
 // Initialize a task
 task = tp_task_create(task1, cleanup1, args, sizeof(int));
-             
+    
 // Post a task to the thread pool `tp`
 tp_post_task(&tp, task);
 
-// Destroy a task
-// It should be invoke by task consumer such as a thread in thread pool.
+// Free a task.
+// DO NOT call this function to free a task.
+// Task is created by tp_task_create() which allocate memory in heap for it.
+// After a task was posted, users have no way to detect whether the task has 
+// been finished. Therefore, tasks' deconstruction is delegated to the pool,
+// which will call tp_task_free() to destroy a task after it's been finished.
 tp_task_free(task);
+```
+
+
+
+batch posting:
+
+```c
+#define TASK_NUM 10
+
+tp_task_t *tasks[TASK_NUM];
+
+for (int i = 0; i < TASK_NUM; ++i) {
+    tasks[i] = tp_task_create(task1, cleanup1, args, sizeof(int));
+    // post task in loop
+    // tp_task_post(&tp, tasks[i]);
+}
+
+// Post all tasks as a batch, which means it's a atomic action.
+// If you call tp_post_task() in a loop to post tasks one by one,
+// it's possible that before you post the second task the first 
+// task has been finished.
+// 
+// Note:
+// Tasks posted to the pool would be released after it's been finished,
+// but the task array won't.
+tp_post_tasks(&tp, tasks, TASK_NUM);
 ```
 
 

@@ -30,12 +30,65 @@ static bool g_self_key_inited = false;
 /* ---------------- Thread Pool API ---------------- */
 
 
+bool _tp_init_pthread_vars(thread_pool_t *tp)
+{
+    bool status = false;
+
+    bool lock_inited = false;
+    bool cond_inited = false;
+    bool no_task_inited = false;
+
+    if (pthread_mutex_init(&tp->lock, NULL)) {
+        perror("pthread_mutex_init() for `lock` failed");
+        goto EXIT;
+    }
+
+    lock_inited = true;
+
+    if (pthread_cond_init(&tp->has_task, NULL)) {
+        perror("pthread_cond_init() for `has_task` failed");
+        goto EXIT;
+    }
+
+    cond_inited = true;
+
+    if (pthread_cond_init(&tp->no_task, NULL)) {
+        perror("pthread_cond_init() for `no_task` failed");
+        goto EXIT;
+    }
+
+    no_task_inited = true;
+
+    status = true;
+
+EXIT:
+    if (!status) {
+        if (no_task_inited) {
+            if (pthread_cond_destroy(&tp->no_task)) {
+                perror("pthread_cond_destroy() for `no_task` failed");
+            }
+        }
+
+        if (cond_inited) {
+            if (pthread_cond_destroy(&tp->has_task)) {
+                perror("pthread_cond_destroy() for `has_task` failed");
+            }
+        }
+
+        if (lock_inited) {
+            if (pthread_mutex_destroy(&tp->lock)) {
+                perror("pthread_mutex_destroy() for `lock` failed");
+            }
+        }
+    }
+    return status;
+}
+
+
 bool tp_init(thread_pool_t *tp, uint32_t nthreads)
 {
     bool status = false;
     bool queue_inited = false;
-    bool mutex_inited = false;
-    bool cond_inited = false;
     bool threads_allocated = false;
 
     bzero(tp, sizeof(thread_pool_t));
@@ -48,19 +101,9 @@ bool tp_init(thread_pool_t *tp, uint32_t nthreads)
 
     queue_inited = true;
 
-    if (pthread_mutex_init(&tp->lock, NULL)) {
-        perror("pthread_mutex_init() failed");
+    if (!_tp_init_pthread_vars(tp)) {
         goto EXIT;
     }
-
-    mutex_inited = true;
-
-    if (pthread_cond_init(&tp->has_task, NULL)) {
-        perror("pthread_cond_init() failed");
-        goto EXIT;
-    }
-
-    cond_inited = true;
 
     tp->threads = calloc(nthreads, sizeof(pthread_t));
 
@@ -79,18 +122,6 @@ EXIT:
     if (!status) {
         if (threads_allocated) {
             free(tp->threads);
-        }
-
-        if (cond_inited) {
-            if (pthread_cond_destroy(&tp->has_task)) {
-                perror("pthread_cond_destroy() failed");
-            }
-        }
-
-        if (mutex_inited) {
-            if (pthread_mutex_destroy(&tp->lock)) {
-                perror("pthread_mutex_destroy()");
-            }
         }
 
         if (queue_inited) {
@@ -194,22 +225,79 @@ void tp_join(thread_pool_t *tp)
 }
 
 
+bool tp_join_tasks(thread_pool_t *tp)
+{
+    pthread_mutex_lock(&tp->lock);
+
+    do {
+        pthread_cond_wait(&tp->no_task, &tp->lock);
+    } while (tp->active_tasks > 0);
+
+    pthread_mutex_unlock(&tp->lock);
+
+    return tp->active_tasks == 0;
+}
+
+
 bool tp_post_task(thread_pool_t *tp, tp_task_t *task)
 {
     bool status = false;
+    bool posted = false;
     qdata_t data;
+
+    if (tp == NULL || task == NULL) {
+        goto EXIT;
+    }
 
     // todo: check return value?
     data.ptr = task;
     pthread_mutex_lock(&tp->lock);
-    queue_enqueue(&tp->task_queue, data);
-    pthread_cond_signal(&tp->has_task);
+    posted = queue_enqueue(&tp->task_queue, data);
     pthread_mutex_unlock(&tp->lock);
+
+    if (!posted) {
+        goto EXIT;
+    }
+
+    __sync_add_and_fetch(&tp->active_tasks, 1);
+    __sync_synchronize();
+
+    pthread_cond_signal(&tp->has_task);
 
     status = true;
 
 EXIT:
     return status;
+}
+
+
+int tp_post_tasks(thread_pool_t *tp, tp_task_t *tasks[], int ntask)
+{
+    int posted = 0;
+    qdata_t data;
+
+    if (tp == NULL || tasks == NULL || ntask == 0) {
+        goto EXIT;
+    }
+
+    pthread_mutex_lock(&tp->lock);
+    for (int i = 0; i < ntask; ++i) {
+        data.ptr = tasks[i];
+        if (queue_enqueue(&tp->task_queue, data)) {
+            ++posted;
+        }
+    }
+    pthread_mutex_unlock(&tp->lock);
+
+    if (posted) {
+        __sync_add_and_fetch(&tp->active_tasks, ntask);
+        __sync_synchronize();
+
+        pthread_cond_signal(&tp->has_task);
+    }
+
+EXIT:
+    return posted;
 }
 
 
@@ -236,20 +324,27 @@ void *tp_worker(void *args)
     pthread_cleanup_push(tp_cleanup, pool) ;
 
             while (1) {
+                data.ptr = NULL;
+                task = NULL;
+
+                // Take a task
                 pthread_mutex_lock(&pool->lock);
 
                 pthread_cleanup_push(tp_cleanup_unlock, pool) ;
+                        // If no task in queue, wait until someone post one.
                         while (queue_isempty(&pool->task_queue)) {
                             pthread_cond_wait(&pool->has_task, &pool->lock);
                         }
-
+                        // Dequeue a task for running
                         if (queue_dequeue(&pool->task_queue, &data)) {
                             task = data.ptr;
                         }
+
                 pthread_cleanup_pop(0);
 
                 pthread_mutex_unlock(&pool->lock);
 
+                // Run a task
                 if (task && task->runner) {
                     if (task->cleanup) {
                         pthread_cleanup_push(task->cleanup, task->args) ;
@@ -258,6 +353,15 @@ void *tp_worker(void *args)
                         task->cleanup(task->args);
                     } else {
                         task->runner(task->args);
+                    }
+
+
+                    // Note: pool->task_queue is empty DO NOT means there is no task
+                    //
+                    // If there is no task remain in the queue after dequeue operation,
+                    // signal for tp_join_task()
+                    if (__sync_sub_and_fetch(&pool->active_tasks, 1) == 0) {
+                        pthread_cond_signal(&pool->no_task);
                     }
 
                     tp_task_free(task);

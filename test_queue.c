@@ -3,9 +3,20 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-#define LEN 5
-int data[LEN] = {1, 2, 5, 4, 3};
+#define LEN 1000000
+int data[LEN];
+
+
+void init_data()
+{
+    srand((unsigned int) time(NULL));
+    for (int i = 0; i < LEN; ++i) {
+        data[i] = rand();
+    }
+}
 
 
 void test_init()
@@ -79,6 +90,7 @@ void test_len()
 
 int main()
 {
+    init_data();
     test_init();
     test_destroy();
     test_len();

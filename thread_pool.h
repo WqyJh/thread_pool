@@ -38,6 +38,9 @@ struct thread_pool_s
     queue_t task_queue;
     pthread_mutex_t lock;
     pthread_cond_t has_task;
+
+    uint32_t active_tasks;
+    pthread_cond_t no_task;
 };
 
 
@@ -83,7 +86,7 @@ void tp_destroy(thread_pool_t *tp);
 
 
 /**
- * Waiting for all threads in pool exiting.
+ * Waiting for all threads in pool to stop.
  *
  * @param tp started thread pool
  */
@@ -104,6 +107,34 @@ void tp_join(thread_pool_t *tp);
  *         false: failed
  */
 bool tp_post_task(thread_pool_t *tp, tp_task_t *task);
+
+
+/**
+ * Waiting for all currently running tasks to finish.
+ *
+ * @param tp thread pool
+ * @return true: there is no running tasks now
+ *         false: there are new tasks added just before
+ *                tp_join_tasks() return
+ */
+bool tp_join_tasks(thread_pool_t *tp);
+
+
+/**
+ * Post all tasks as a batch, which means it's a atomic action.
+ *
+ * If you call tp_post_task() in a loop to post tasks one by one,
+ * it's possible that before you post the second task the first
+ * task has been finished.
+ * However, it doesn't matter in most situations,
+ * just take it simply as a repetition of tp_post_task().
+ *
+ * @param tp thread pool
+ * @param tasks array of tasks
+ * @param ntask number of tasks in the array
+ * @return number of successfully posted tasks
+ */
+int tp_post_tasks(thread_pool_t *tp, tp_task_t *tasks[], int ntask);
 
 
 /**

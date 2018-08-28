@@ -20,7 +20,13 @@ struct _args_s
 
 void cleanup1(void *args)
 {
-    fprintf(stderr, "cleanup\n");
+    struct _args_s _args;
+
+    memcpy(&_args, args, sizeof(struct _args_s));
+
+    fprintf(stderr, "cleanup [%d]: %d\n", _args.index, *_args.num);
+
+    assert(*_args.num == _args.index);
 }
 
 
@@ -30,11 +36,10 @@ void *task1(void *args)
 
     memcpy(&_args, args, sizeof(struct _args_s));
 
-    while (*_args.num < 3) {
+    while (*_args.num < _args.index) {
         ++(*_args.num);
-        fprintf(stderr, "[%d]: %d\n", _args.index, *_args.num);
-        sleep(1);
     }
+
 
     return NULL;
 }
@@ -45,7 +50,7 @@ void test_pool()
     int a[LEN];
     thread_pool_t tp;
     struct _args_s args;
-    tp_task_t *task;
+    tp_task_t *tasks[LEN];
 
     bzero(a, sizeof(int) * LEN);
 
@@ -57,13 +62,13 @@ void test_pool()
         args.num = &a[i];
         args.index = i;
 
-        task = tp_task_create(task1, cleanup1,
+        tasks[i] = tp_task_create(task1, cleanup1,
                               &args, sizeof(struct _args_s));
-        tp_post_task(&tp, task);
     }
 
-    sleep(3);
-//    tp_join(&tp);
+    assert(LEN == tp_post_tasks(&tp, tasks, LEN));
+
+    tp_join_tasks(&tp);
     tp_destroy(&tp);
 }
 

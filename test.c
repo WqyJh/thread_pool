@@ -19,13 +19,14 @@ void *func(void *args)
 
     pthread_setspecific(key, &i);
 
-    sleep(1);
+    usleep(1000 * 1000);
 
     printf("func(): %p\n", pthread_getspecific(key));
 
     pthread_setspecific(key, &j);
 
-    sleep(1);
+    usleep(1000 * 1000);
+
 
     printf("func(): %p\n", pthread_getspecific(key));
 
