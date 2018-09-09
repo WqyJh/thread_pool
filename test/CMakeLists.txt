@@ -16,6 +16,9 @@ target_link_libraries(test_tp_self thread_pool)
 add_executable(test_atomic test_atomic.c)
 target_link_libraries(test_atomic thread_pool)
 
+add_executable(test_crash test_crash.c)
+target_link_libraries(test_crash thread_pool)
+
 add_executable(practice practice.c)
 target_link_libraries(practice pthread)
 

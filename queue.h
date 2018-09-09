@@ -1,5 +1,5 @@
-#ifndef DATA_STRUCTURE_QUEUE_H
-#define DATA_STRUCTURE_QUEUE_H
+#ifndef QUEUE_H
+#define QUEUE_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -61,4 +61,4 @@ qnode_t *qnode_create(qdata_t data);
 void qnode_destroy(qnode_t *node);
 
 
-#endif //DATA_STRUCTURE_QUEUE_H
+#endif //QUEUE_H

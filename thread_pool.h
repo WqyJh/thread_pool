@@ -1,5 +1,5 @@
-#ifndef DATA_STRUCTURE_THREAD_POOL_H
-#define DATA_STRUCTURE_THREAD_POOL_H
+#ifndef THREAD_POOL_H
+#define THREAD_POOL_H
 
 /**
  * Thread Pool based on pthread implementing in `C`.
@@ -253,4 +253,4 @@ void *tp_get_tls(thread_local_t *tls);
 bool tp_set_tls(thread_local_t *tls);
 
 
-#endif //DATA_STRUCTURE_THREAD_POOL_H
+#endif //THREAD_POOL_H
