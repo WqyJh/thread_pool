@@ -16,6 +16,8 @@ thread_pool_t g_tp;
 
 void *task1(void *args)
 {
+    UNUSED_PARAM(args);
+
     thread_pool_t *tp;
     tp_task_t *task;
 
@@ -33,6 +35,8 @@ void *task1(void *args)
 
 void *task2(void *args)
 {
+    UNUSED_PARAM(args);
+
     thread_pool_t *tp;
 
     tp = tp_self();

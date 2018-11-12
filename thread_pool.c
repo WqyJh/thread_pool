@@ -144,7 +144,7 @@ bool tp_start(thread_pool_t *tp)
         goto EXIT;
     }
 
-    for (int i = 0; i < tp->nthread; ++i) {
+    for (int i = 0; i < (int) tp->nthread; ++i) {
         if (pthread_create(&tp->threads[i], NULL, tp_worker, tp)) {
             threads_created_num = i;
             goto EXIT;
@@ -181,7 +181,7 @@ void tp_destroy(thread_pool_t *tp)
     }
 
     if (tp->threads) {
-        for (i = 0; i < tp->nthread; ++i) {
+        for (i = 0; i < (int) tp->nthread; ++i) {
             // todo: check return value
             if (pthread_cancel(tp->threads[i])) {
                 perror("pthread_cancel() failed");
@@ -215,7 +215,7 @@ void tp_destroy(thread_pool_t *tp)
 void tp_join(thread_pool_t *tp)
 {
     if (tp && tp->threads) {
-        for (int i = 0; i < tp->nthread; ++i) {
+        for (int i = 0; i < (int) tp->nthread; ++i) {
             // todo: check return value
             if (pthread_join(tp->threads[i], NULL)) {
                 perror("pthread_join() failed");
@@ -311,7 +311,8 @@ void tp_cleanup_unlock(void *args)
 
 void tp_cleanup(void *args)
 {
-    fprintf(stderr, "thread ended\n");
+    UNUSED_PARAM(args);
+//    fprintf(stderr, "thread ended\n");
 }
 
 
@@ -425,6 +426,8 @@ EXIT:
 
 void _tp_self_destroy(thread_pool_t *tp)
 {
+    UNUSED_PARAM(tp);
+
     if (g_self_key_inited) {
         tp_tls_destroy(&g_self_tls);
     }

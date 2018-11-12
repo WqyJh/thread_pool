@@ -14,12 +14,16 @@ volatile int cnt = 0;
 
 void cleanup(void *args)
 {
+    UNUSED_PARAM(args);
+
 //    fprintf(stderr, "cleanup++\n");
 }
 
 
 void *f(void *args)
 {
+    UNUSED_PARAM(args);
+
     for (int n = 0; n < 20000; ++n) {
         __sync_add_and_fetch(&acnt, 1); // 原子的
         ++cnt; // 未定义行为，实际上会失去一些更新

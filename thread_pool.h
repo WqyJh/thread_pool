@@ -12,6 +12,8 @@
 
 #include "queue.h"
 
+#define UNUSED_PARAM(x) (void)(x)
+
 
 typedef void *(*runnable_t)(void *args);
 

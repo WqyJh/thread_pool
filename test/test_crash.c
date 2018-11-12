@@ -13,6 +13,8 @@
 
 void cleanup1(void *args)
 {
+    UNUSED_PARAM(args);
+
     fprintf(stderr, "cleanup\n");
 }
 

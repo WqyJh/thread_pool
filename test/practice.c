@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <thread_pool.h>
 
 
 pthread_key_t key;
@@ -8,12 +9,16 @@ pthread_key_t key;
 
 void tls_cleanup(void *args)
 {
+    UNUSED_PARAM(args);
+
     fprintf(stderr, "tls_cleanup()\n");
 }
 
 
 void *func(void *args)
 {
+    UNUSED_PARAM(args);
+
     int i = 0;
     int j = 0;
 
