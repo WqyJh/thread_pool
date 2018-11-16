@@ -22,9 +22,11 @@ void cleanup(void *args)
 
 void *f(void *args)
 {
+    int n;
+
     UNUSED_PARAM(args);
 
-    for (int n = 0; n < 20000; ++n) {
+    for (n = 0; n < 20000; ++n) {
         __sync_add_and_fetch(&acnt, 1); // 原子的
         ++cnt; // 未定义行为，实际上会失去一些更新
     }
@@ -34,13 +36,14 @@ void *f(void *args)
 
 void test_atomic()
 {
+    int i;
     thread_pool_t tp;
     tp_task_t *tasks[TASK_NUM];
 
     tp_init(&tp, THREAD_NUM);
     tp_start(&tp);
 
-    for (int i = 0; i < TASK_NUM; ++i) {
+    for (i = 0; i < TASK_NUM; ++i) {
         tasks[i] = tp_task_create(f, cleanup, NULL, 0);
         tp_post_task(&tp, tasks[i]);
     }
@@ -61,5 +64,6 @@ void test_atomic()
 int main(void)
 {
     test_atomic();
+
     return 0;
 }

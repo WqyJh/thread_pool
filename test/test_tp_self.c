@@ -76,4 +76,6 @@ void test_self()
 int main()
 {
     test_self();
+
+    return 0;
 }

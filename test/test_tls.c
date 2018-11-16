@@ -32,11 +32,12 @@ void tls_cleanup(void *args)
 
 void *task_func(void *args)
 {
+    int i;
     thread_local_t *tls = args;
 
     int *data = tp_get_tls(tls);
 
-    for (int i = 0; i < 3; ++i) {
+    for (i = 0; i < 3; ++i) {
         *data += 2 + *data;
 //        fprintf(stderr, "[%lu] %d\n", pthread_self(), *data);
     }
@@ -49,6 +50,7 @@ void *task_func(void *args)
 
 void test_tls()
 {
+    int i;
     thread_pool_t tp;
     tp_task_t *task;
     thread_local_t tls;
@@ -60,7 +62,7 @@ void test_tls()
     assert(task);
     assert(tp_tls_init(&tls, task));
 
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         task = tp_task_create(task_func, NULL, &tls, 0);
         assert(task);
         tp_post_task(&tp, task);
@@ -74,5 +76,6 @@ void test_tls()
 int main()
 {
     test_tls();
+
     return 0;
 }

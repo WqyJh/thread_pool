@@ -47,6 +47,7 @@ void *task1(void *args)
 
 void test_pool()
 {
+    int i;
     int a[LEN];
     thread_pool_t tp;
     struct _args_s args;
@@ -58,7 +59,7 @@ void test_pool()
     assert(tp_start(&tp));
 
 
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         args.num = &a[i];
         args.index = i;
 
@@ -76,4 +77,6 @@ void test_pool()
 int main()
 {
     test_pool();
+
+    return 0;
 }

@@ -52,4 +52,6 @@ void _test()
 int main()
 {
     _test();
+
+    return 0;
 }

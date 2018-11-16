@@ -137,6 +137,7 @@ EXIT:
 
 bool tp_start(thread_pool_t *tp)
 {
+    int i;
     bool status = false;
     int threads_created_num = 0;
 
@@ -144,7 +145,7 @@ bool tp_start(thread_pool_t *tp)
         goto EXIT;
     }
 
-    for (int i = 0; i < (int) tp->nthread; ++i) {
+    for (i = 0; i < (int) tp->nthread; ++i) {
         if (pthread_create(&tp->threads[i], NULL, tp_worker, tp)) {
             threads_created_num = i;
             goto EXIT;
@@ -155,13 +156,13 @@ bool tp_start(thread_pool_t *tp)
 
 EXIT:
     if (!status) {
-        for (int i = 0; i < threads_created_num; ++i) {
+        for (i = 0; i < threads_created_num; ++i) {
             if (pthread_cancel(tp->threads[i])) {
                 perror("pthread_cancel() failed");
             }
         }
 
-        for (int i = 0; i < threads_created_num; ++i) {
+        for (i = 0; i < threads_created_num; ++i) {
             if (pthread_join(tp->threads[i], NULL)) {
                 perror("pthread_join() failed");
             }
@@ -214,8 +215,10 @@ void tp_destroy(thread_pool_t *tp)
 
 void tp_join(thread_pool_t *tp)
 {
+    int i;
+
     if (tp && tp->threads) {
-        for (int i = 0; i < (int) tp->nthread; ++i) {
+        for (i = 0; i < (int) tp->nthread; ++i) {
             // todo: check return value
             if (pthread_join(tp->threads[i], NULL)) {
                 perror("pthread_join() failed");
@@ -273,6 +276,7 @@ EXIT:
 
 int tp_post_tasks(thread_pool_t *tp, tp_task_t *tasks[], int ntask)
 {
+    int i;
     int posted = 0;
     qdata_t data;
 
@@ -281,7 +285,7 @@ int tp_post_tasks(thread_pool_t *tp, tp_task_t *tasks[], int ntask)
     }
 
     pthread_mutex_lock(&tp->lock);
-    for (int i = 0; i < ntask; ++i) {
+    for (i = 0; i < ntask; ++i) {
         data.ptr = tasks[i];
         if (queue_enqueue(&tp->task_queue, data)) {
             ++posted;

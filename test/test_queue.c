@@ -12,8 +12,10 @@ int data[LEN];
 
 void init_data()
 {
+    int i;
+
     srand((unsigned int) time(NULL));
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         data[i] = rand();
     }
 }
@@ -37,14 +39,15 @@ void test_init()
 
 void test_destroy()
 {
-    fprintf(stderr, "test_destroy() started\n");
-
+    int i;
     qdata_t qdata;
     queue_t queue;
 
+    fprintf(stderr, "test_destroy() started\n");
+
     assert(queue_init(&queue));
 
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         qdata.i32 = data[i];
         assert(queue_enqueue(&queue, qdata));
     }
@@ -62,21 +65,22 @@ void test_destroy()
 
 void test_len()
 {
-    fprintf(stderr, "test_len() started\n");
-
+    int i;
     qdata_t qdata;
     queue_t queue;
 
+    fprintf(stderr, "test_len() started\n");
+
     assert(queue_init(&queue));
 
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         qdata.i32 = data[i];
         assert(queue_enqueue(&queue, qdata));
     }
 
     assert(LEN == queue_len(&queue));
 
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         assert(queue_dequeue(&queue, &qdata));
         assert(data[i] == qdata.i32);
     }
@@ -101,4 +105,6 @@ void test_queue()
 int main()
 {
     test_queue();
+
+    return 0;
 }

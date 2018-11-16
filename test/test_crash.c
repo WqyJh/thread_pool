@@ -31,6 +31,7 @@ void *task1(void *args)
 
 void test_pool()
 {
+    int i;
     int a[LEN];
     thread_pool_t tp;
     tp_task_t *tasks[LEN];
@@ -41,7 +42,7 @@ void test_pool()
     assert(tp_start(&tp));
 
 
-    for (int i = 0; i < LEN; ++i) {
+    for (i = 0; i < LEN; ++i) {
         tasks[i] = tp_task_create(task1, cleanup1, NULL, 0);
     }
 
@@ -55,4 +56,6 @@ void test_pool()
 int main()
 {
     test_pool();
+
+    return 0;
 }
