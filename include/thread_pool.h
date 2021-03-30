@@ -10,7 +10,7 @@
 
 #include <pthread.h>
 
-#include "queue.h"
+#include <queue.h>
 
 #define UNUSED_PARAM(x) (void)(x)
 
