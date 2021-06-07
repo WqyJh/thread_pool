@@ -2,7 +2,7 @@
 include_directories(..)
 
 add_executable(test_queue test_queue.c)
-target_link_libraries(test_queue queue)
+target_link_libraries(test_queue thread_pool)
 
 add_executable(test_tls test_tls.c)
 target_link_libraries(test_tls thread_pool)
